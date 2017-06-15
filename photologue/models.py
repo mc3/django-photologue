@@ -246,6 +246,8 @@ class ImageModel(models.Model):
                                       null=True,
                                       blank=True,
                                       help_text=_('Date image was taken; is obtained from the image EXIF data.'))
+    caption = models.TextField(_('caption'),
+                               blank=True)
     view_count = models.PositiveIntegerField(_('view count'),
                                              default=0,
                                              editable=False)
@@ -485,6 +487,16 @@ class ImageModel(models.Model):
                                                int(hour), int(minute), int(second))
             except:
                 logger.error('Failed to read EXIF DateTimeOriginal', exc_info=True)
+
+            # Attempt to get the ImageDescription from the EXIF data.
+            try:
+                descr = self.EXIF(self.image.file).get('EXIF ImageDescription', None)
+                if descr:
+                    self.caption = descr
+                    logger.debug('Got EXIF ImageDescription: {}.'.format(self.caption))
+            except:
+                logger.error('Failed to read EXIF ImageDescription', exc_info=True)
+
         super(ImageModel, self).save(*args, **kwargs)
         self.pre_cache()
 
@@ -511,8 +523,6 @@ class Photo(ImageModel):
                             unique=True,
                             max_length=250,
                             help_text=_('A "slug" is a unique URL-friendly title for an object.'))
-    caption = models.TextField(_('caption'),
-                               blank=True)
     date_added = models.DateTimeField(_('date added'),
                                       default=now)
     is_public = models.BooleanField(_('is public'),

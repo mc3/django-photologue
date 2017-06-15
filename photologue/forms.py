@@ -46,7 +46,7 @@ class UploadZipForm(forms.Form):
                                                  'create a new gallery from the supplied title.'))
     caption = forms.CharField(label=_('Caption'),
                               required=False,
-                              help_text=_('Caption will be added to all photos.'))
+                              help_text=_('Caption will be added to all photos or taken from EXIF.'))
     description = forms.CharField(label=_('Description'),
                                   required=False,
                                   help_text=_('A description of this Gallery. Only required for new galleries.'))
