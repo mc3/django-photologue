@@ -6,6 +6,7 @@ import logging
 from io import BytesIO
 from importlib import import_module
 import exifread
+import pyexiv2
 import unicodedata
 from PIL import Image, ImageFile, ImageFilter, ImageEnhance
 
@@ -71,9 +72,13 @@ else:
 # See http://www.brynosaurus.com/cachedir/spec.html
 PHOTOLOGUE_CACHEDIRTAG = os.path.join(PHOTOLOGUE_DIR, "photos", "cache", "CACHEDIR.TAG")
 if not default_storage.exists(PHOTOLOGUE_CACHEDIRTAG):
-    default_storage.save(PHOTOLOGUE_CACHEDIRTAG, ContentFile(
-        "Signature: 8a477f597d28d172789f06886806bc55"))
+    default_storage.save(   PHOTOLOGUE_CACHEDIRTAG,
+                            ContentFile(
+                            "Signature: 8a477f597d28d172789f06886806bc55"))
 
+# pyexiv2 needs image path
+MEDIA_ROOT = getattr(settings, 'MEDIA_ROOT', None)
+#
 # Exif Orientation values
 # Value 0thRow	0thColumn
 #   1	top     left
@@ -275,7 +280,25 @@ class ImageModel(models.Model):
             return tags
         except:
             return {}
-
+    
+    def set_from_XMP_IPTC(self, filepath=None):
+        metadata = pyexiv2.ImageMetadata(filepath)
+        metadata.read()
+                                                    # read description
+        tag = metadata['Iptc.Application2.Caption']
+        self.caption = tag.value[0]
+        if not self.caption or self.caption == '':  # try XMP if missed in IPTC
+            tag = metadata['Xmp.dc.description']
+            self.caption = tag.value['x-default']
+            
+        tag = metadata['Iptc.Application2.ObjectName']
+        self.title = tag.value[0]
+        if not self.title or self.title == '':      # try XMP if missed in IPTC
+            tag = metadata['Xmp.dc.title']
+            self.title = tag.value['x-default']
+            
+        return 
+    
     def admin_thumbnail(self):
         func = getattr(self, 'get_admin_thumbnail_url', None)
         if func is None:
@@ -488,12 +511,11 @@ class ImageModel(models.Model):
             except:
                 logger.error('Failed to read EXIF DateTimeOriginal', exc_info=True)
 
-            # Attempt to get the ImageDescription from the EXIF data.
+            # Attempt to get the ImageDescription from the IPTC data.
             try:
-                descr = self.EXIF(self.image.file).get('EXIF ImageDescription', None)
-                if descr:
-                    self.caption = descr
-                    logger.debug('Got EXIF ImageDescription: {}.'.format(self.caption))
+                nm = self.image.name
+                pa = MEDIA_ROOT + '/' + get_storage_path(self, nm)
+                self.set_from_XMP_IPTC(pa)
             except:
                 logger.error('Failed to read EXIF ImageDescription', exc_info=True)
 
