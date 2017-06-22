@@ -282,18 +282,21 @@ class ImageModel(models.Model):
             return {}
     
     def set_from_XMP_IPTC(self, filepath=None):
+        if (not self.caption or self.caption == ' ' and (not self.title or self.title == ' '):
+            return                                  # read metadata onlx if necessary
+        
         metadata = pyexiv2.ImageMetadata(filepath)
         metadata.read()
                                                     # read description
         tag = metadata['Iptc.Application2.Caption']
         self.caption = tag.value[0]
-        if not self.caption or self.caption == '':  # try XMP if missed in IPTC
+        if not self.caption or self.caption == ' ':  # try XMP if missed in IPTC
             tag = metadata['Xmp.dc.description']
             self.caption = tag.value['x-default']
             
         tag = metadata['Iptc.Application2.ObjectName']
         self.title = tag.value[0]
-        if not self.title or self.title == '':      # try XMP if missed in IPTC
+        if not self.title or self.title == ' ':      # try XMP if missed in IPTC
             tag = metadata['Xmp.dc.title']
             self.title = tag.value['x-default']
             
