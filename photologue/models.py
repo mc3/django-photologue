@@ -72,9 +72,10 @@ else:
 # See http://www.brynosaurus.com/cachedir/spec.html
 PHOTOLOGUE_CACHEDIRTAG = os.path.join(PHOTOLOGUE_DIR, "photos", "cache", "CACHEDIR.TAG")
 if not default_storage.exists(PHOTOLOGUE_CACHEDIRTAG):
-    default_storage.save(   PHOTOLOGUE_CACHEDIRTAG,
-                            ContentFile(
-                            "Signature: 8a477f597d28d172789f06886806bc55"))
+    default_storage.save(   PHOTOLOGUE_CACHEDIRTAG, 
+                            ContentFile("Signature: 8a477f597d28d172789f06886806bc55"))
+
+# " Workaround for SubEthaEdit syntax coloring
 
 # pyexiv2 needs image path
 MEDIA_ROOT = getattr(settings, 'MEDIA_ROOT', None)
@@ -282,24 +283,30 @@ class ImageModel(models.Model):
             return {}
     
     def set_from_XMP_IPTC(self, filepath=None):
-        if (not self.caption or self.caption == ' ' and (not self.title or self.title == ' '):
+        if (self.caption and self.caption != ' ' and (self.title and self.title != ' '):
+            self.slug = slugify(self.title)
             return                                  # read metadata onlx if necessary
         
         metadata = pyexiv2.ImageMetadata(filepath)
         metadata.read()
-                                                    # read description
-        tag = metadata['Iptc.Application2.Caption']
-        self.caption = tag.value[0]
-        if not self.caption or self.caption == ' ':  # try XMP if missed in IPTC
-            tag = metadata['Xmp.dc.description']
-            self.caption = tag.value['x-default']
+                                                 
+        if not self.caption or self.caption == ' ':   # read description
+            tag = metadata['Iptc.Application2.Caption']
+            self.caption = tag.value[0]
+            if not self.caption or self.caption == ' ':  # try XMP if missed in IPTC
+                tag = metadata['Xmp.dc.description']
+                self.caption = tag.value['x-default']
             
-        tag = metadata['Iptc.Application2.ObjectName']
-        self.title = tag.value[0]
-        if not self.title or self.title == ' ':      # try XMP if missed in IPTC
-            tag = metadata['Xmp.dc.title']
-            self.title = tag.value['x-default']
-            
+        if not self.title or self.title == ' ':
+            tag = metadata['Iptc.Application2.ObjectName']
+            self.title = tag.value[0]
+            if not self.title or self.title == ' ':      # try XMP if missed in IPTC
+                tag = metadata['Xmp.dc.title']
+                self.title = tag.value['x-default']
+                if not self.title or self.title == ' ':
+                    self.title = self.image.name
+
+        self.slug = slugify(self.title)
         return 
     
     def admin_thumbnail(self):
