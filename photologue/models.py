@@ -283,7 +283,7 @@ class ImageModel(models.Model):
             return {}
     
     def set_from_XMP_IPTC(self, filepath=None):
-        if (self.caption and self.caption != ' ' and (self.title and self.title != ' '):
+        if (self.caption and self.caption != ' ') and (self.title and self.title != ' '):
             self.slug = slugify(self.title)
             return                                  # read metadata onlx if necessary
         
