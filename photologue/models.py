@@ -283,27 +283,27 @@ class ImageModel(models.Model):
             return {}
     
     def set_from_XMP_IPTC(self, filepath=None):
-        if (self.caption and self.caption != ' ') and (self.title and self.title != ' '):
+        if (self.caption and self.caption != '') and (self.title and self.title != ' '):
             self.slug = slugify(self.title)
             return                                  # read metadata onlx if necessary
-        
+
         metadata = pyexiv2.ImageMetadata(filepath)
         metadata.read()
                                                  
-        if not self.caption or self.caption == ' ':   # read description
+        if not self.caption or self.caption == '':   # read description
             tag = metadata['Iptc.Application2.Caption']
             self.caption = tag.value[0]
-            if not self.caption or self.caption == ' ':  # try XMP if missed in IPTC
+            if not self.caption or self.caption == '':  # try XMP if missed in IPTC
                 tag = metadata['Xmp.dc.description']
                 self.caption = tag.value['x-default']
             
-        if not self.title or self.title == ' ':
+        if not self.title or self.title == '':
             tag = metadata['Iptc.Application2.ObjectName']
             self.title = tag.value[0]
-            if not self.title or self.title == ' ':      # try XMP if missed in IPTC
+            if not self.title or self.title == '':      # try XMP if missed in IPTC
                 tag = metadata['Xmp.dc.title']
                 self.title = tag.value['x-default']
-                if not self.title or self.title == ' ':
+                if not self.title or self.title == '':
                     self.title = self.image.name
 
         self.slug = slugify(self.title)
@@ -521,13 +521,13 @@ class ImageModel(models.Model):
             except:
                 logger.error('Failed to read EXIF DateTimeOriginal', exc_info=True)
 
-            # Attempt to get the ImageDescription from the IPTC data.
-            try:
-                nm = self.image.name
-                pa = MEDIA_ROOT + '/' + get_storage_path(self, nm)
-                self.set_from_XMP_IPTC(pa)
-            except:
-                logger.error('Failed to read EXIF ImageDescription', exc_info=True)
+        # Attempt to get the ImageDescription from the IPTC data.
+        try:
+            nm = self.image.name
+            pa = MEDIA_ROOT + '/' + get_storage_path(self, nm)
+            self.set_from_XMP_IPTC(pa)
+        except:
+            logger.error('Failed to read EXIF ImageDescription', exc_info=True)
 
         super(ImageModel, self).save(*args, **kwargs)
         self.pre_cache()

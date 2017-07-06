@@ -137,9 +137,9 @@ class PhotoAdminForm(forms.ModelForm):
     class Meta:
         model = Photo
         if MULTISITE:
-            exclude = []
+            exclude = ['title','slug']
         else:
-            exclude = ['sites']
+            exclude = ['title','slug','sites']
 
 
 class PhotoAdmin(admin.ModelAdmin):
